@@ -636,6 +636,7 @@ local function luau_load(module, env, luau_settings)
 	local stepHook = luau_settings.callHooks.stepHook
 	local interruptHook = luau_settings.callHooks.interruptHook
 	local panicHook = luau_settings.callHooks.panicHook
+	local callHook = luau_settings.callHooks.callHook
 
 	local alive = true 
 
@@ -900,9 +901,18 @@ local function luau_load(module, env, luau_settings)
 
 					local params = if B == 0 then top - A else B - 1
 					local func = stack[A]
-					local ret_list = table_pack(
-						func(table_unpack(stack, A + 1, A + params))
-					)
+
+					local ret_list
+					if callHook then
+						local hook_ret = table_pack(callHook(func, table_unpack(stack, A + 1, A + params)))
+						ret_list = table_pack(
+							hook_ret[1](table_unpack(hook_ret, 2, hook_ret.n))
+						)
+					else
+						ret_list = table_pack(
+							func(table_unpack(stack, A + 1, A + params))
+						)
+					end
 
 					local ret_num = ret_list.n
 
